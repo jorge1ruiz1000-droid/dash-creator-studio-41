@@ -169,6 +169,9 @@ export function ReferenceSelect({
   // Single-client admins are resolved from the session, so the games list must
   // be fetched without operator_id. Admins and multi-client accounts send it.
   const operatorScoped = scope.mode !== "single";
+  // Both game lists (operator-scoped `game` and catalogue `catalogGame`) support
+  // server-side partner filtering.
+  const isGameKind = kind === "game" || kind === "catalogGame";
 
   useEffect(() => {
     if (!partnerFilter || !partnerFilterValue) {

@@ -104,7 +104,7 @@ export const useReferenceStore = create<ReferenceStore>((set, get) => {
     const trimmed = searchText?.trim() ?? "";
     const query = { page, per_page: cfg.perPage } as Record<string, string | number>;
     if (trimmed) query.search = trimmed;
-    if (kind === "game" && partnerId) query.partner_id = partnerId;
+    if ((kind === "game" || kind === "catalogGame") && partnerId) query.partner_id = partnerId;
 
     set((state) => ({ [kind]: { ...state[kind], loading: true, error: null } }) as Partial<ReferenceStore>);
     try {
