@@ -333,7 +333,7 @@ export function ReferenceSelect({
       const bLabel = rowLabel(b, query.options, kind).toLocaleLowerCase();
       return aLabel.localeCompare(bLabel);
     });
-  }, [scopedRows, partnerFilter, partnerFilterId, query.options, kind, partnerState.options]);
+  }, [scopedRows, partnerFilter, partnerFilterId, query.options, kind, isGameKind, partnerState.options]);
 
   const filtered = useMemo(() => {
     const result = filterRows(partnerScopedRows, query.options, search, groupBy, kind);
