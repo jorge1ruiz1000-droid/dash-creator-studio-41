@@ -511,7 +511,7 @@ export function ReferenceSelect({
                 className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none focus:border-primary/70 focus:ring-0"
               />
             </div>
-            {kind === "game" && !query.loading && typeof query.total === "number" ? (
+            {isGameKind && !query.loading && typeof query.total === "number" ? (
               <div className="ml-3 text-xs text-muted-foreground">{query.total.toLocaleString("en-GB")} games</div>
             ) : null}
           </div>
