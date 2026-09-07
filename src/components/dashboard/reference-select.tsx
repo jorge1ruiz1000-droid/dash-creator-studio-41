@@ -365,7 +365,7 @@ export function ReferenceSelect({
     return options.length > 0 ? { label: extraGroup.label, options: [...options].sort((a, b) => a.label.localeCompare(b.label)) } : null;
   }, [extraGroup, search]);
 
-  const pageSize = kind === "game" ? 300 : 200;
+  const pageSize = isGameKind ? 300 : 200;
 
   // "Load more" whenever the server reports more records than we have cached.
   // When the API omits a total, a full page of results implies another page exists.
