@@ -185,10 +185,10 @@ export function ReferenceSelect({
   // forms that depend on operator/operator-games have the data available.
   useEffect(() => {
     if (!required || disabled) return;
-    if (kind === "game") {
+    if (isGameKind) {
       if (partnerFilter) {
         void useReferenceStore.getState().refresh(
-          "game",
+          kind,
           search,
           1,
           false,
@@ -198,21 +198,21 @@ export function ReferenceSelect({
       }
       if (operatorId && operatorScoped) {
         void ensureGamesForOperator(operatorId);
-      } else if (!partnerFilter) {
-        void ensureGlobal("game");
+      } else {
+        void ensureGlobal(kind);
       }
       return;
     }
     void ensureGlobal(kind);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [required, disabled, kind, operatorId, operatorScoped, ensureGamesForOperator, ensureGlobal, partnerFilter, partnerFilterId, search]);
+  }, [required, disabled, kind, isGameKind, operatorId, operatorScoped, ensureGamesForOperator, ensureGlobal, partnerFilter, partnerFilterId, search]);
 
   useEffect(() => {
-    if (kind !== "game" || disabled) return;
+    if (!isGameKind || disabled) return;
     if (partnerFilter) {
       // No partner picked = the full catalogue; a picked partner narrows it server-side.
       void useReferenceStore.getState().refresh(
-        "game",
+        kind,
         search,
         1,
         false,
@@ -224,11 +224,15 @@ export function ReferenceSelect({
       void ensureGamesForOperator(operatorId);
       return;
     }
+    if (kind === "catalogGame") {
+      void ensureGlobal(kind);
+      return;
+    }
     if (!operatorId) {
       return;
     }
     void ensureGlobal("game");
-  }, [kind, operatorId, disabled, operatorScoped, ensureGamesForOperator, ensureGlobal, partnerFilter, partnerFilterId, search]);
+  }, [kind, isGameKind, operatorId, disabled, operatorScoped, ensureGamesForOperator, ensureGlobal, partnerFilter, partnerFilterId, search]);
 
   // Reference lists (operators, partners, roles…) can go stale when records are
   // created elsewhere in the app, so re-fetch them each time the menu is opened.
@@ -237,17 +241,17 @@ export function ReferenceSelect({
   useEffect(() => {
     if (!open || disabled) return;
     const term = search.trim();
-    if (kind === "game") {
+    if (isGameKind) {
       if (partnerFilter) {
-        void refresh("game", term, 1, false, partnerFilterId || undefined);
+        void refresh(kind, term, 1, false, partnerFilterId || undefined);
         return;
       }
       if (operatorId && operatorScoped) {
         void refreshGamesForOperator(operatorId, term);
         return;
       }
-      if (!operatorId) return;
-      void refresh("game", term);
+      if (kind === "game" && !operatorId) return;
+      void refresh(kind, term);
       return;
     }
     // Prefer cached data: only refresh when the list isn't loaded yet or when
@@ -255,7 +259,7 @@ export function ReferenceSelect({
     if (!query.loaded && !term) return;
     void refresh(kind, term);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, search, kind, operatorId, operatorScoped, disabled, refresh, refreshGamesForOperator, query.loaded, partnerFilter, partnerFilterId]);
+  }, [open, search, kind, isGameKind, operatorId, operatorScoped, disabled, refresh, refreshGamesForOperator, query.loaded, partnerFilter, partnerFilterId]);
 
 
 
