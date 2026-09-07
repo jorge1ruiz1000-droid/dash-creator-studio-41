@@ -306,19 +306,27 @@ export function ReferenceSelect({
     const selectedPartner = partnerState.options.find((option) => option.value === partnerFilterId);
     const selectedPartnerName = selectedPartner?.label?.trim().toLowerCase() ?? "";
 
-    const rows = !partnerFilter || !partnerFilterId
-      ? scopedRows
-      : scopedRows.filter((row) => {
-          const rowPartnerId = row.partner_id;
-          const rowPartnerName = typeof row.partner_name === "string" ? row.partner_name.trim().toLowerCase() : "";
-          const matchesId =
-            rowPartnerId !== undefined &&
-            rowPartnerId !== null &&
-            String(rowPartnerId) === String(partnerFilterId);
-          const matchesName =
-            selectedPartnerName !== "" && rowPartnerName && rowPartnerName === selectedPartnerName;
-          return matchesId || matchesName;
-        });
+    // The API already narrows game lists by partner_id, and rows don't always
+    // carry partner_id/partner_name — so never re-filter them client-side.
+    const clientFiltered =
+      !partnerFilter || !partnerFilterId
+        ? scopedRows
+        : scopedRows.filter((row) => {
+            const rowPartnerId = row.partner_id;
+            const rowPartnerName =
+              typeof row.partner_name === "string" ? row.partner_name.trim().toLowerCase() : "";
+            const matchesId =
+              rowPartnerId !== undefined &&
+              rowPartnerId !== null &&
+              String(rowPartnerId) === String(partnerFilterId);
+            const matchesName =
+              selectedPartnerName !== "" && rowPartnerName && rowPartnerName === selectedPartnerName;
+            return matchesId || matchesName;
+          });
+    const rows =
+      isGameKind && partnerFilter && partnerFilterId && clientFiltered.length === 0
+        ? scopedRows
+        : clientFiltered;
 
     return [...rows].sort((a, b) => {
       const aLabel = rowLabel(a, query.options, kind).toLocaleLowerCase();
