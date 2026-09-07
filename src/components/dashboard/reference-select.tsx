@@ -469,21 +469,6 @@ export function ReferenceSelect({
 
       {open ? (
         <div className="absolute left-0 right-0 z-20 mt-1 rounded-md border border-input bg-surface shadow-xl">
-          <div className="flex items-center justify-between border-b border-muted/20 px-2 py-2">
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <input
-                autoFocus
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder={`Search ${placeholder.toLowerCase()}...`}
-                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none focus:border-primary/70 focus:ring-0"
-              />
-            </div>
-            {kind === "game" && !query.loading && typeof query.total === "number" ? (
-              <div className="ml-3 text-xs text-muted-foreground">{query.total.toLocaleString("en-GB")} games</div>
-            ) : null}
-          </div>
           {partnerFilter ? (
             <div className="flex items-center gap-2 border-b border-muted/20 px-3 py-2">
               <span className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
@@ -500,6 +485,22 @@ export function ReferenceSelect({
               </div>
             </div>
           ) : null}
+          <div className="flex items-center justify-between border-b border-muted/20 px-2 py-2">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <input
+                autoFocus
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={`Search ${placeholder.toLowerCase()}...`}
+                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none focus:border-primary/70 focus:ring-0"
+              />
+            </div>
+            {kind === "game" && !query.loading && typeof query.total === "number" ? (
+              <div className="ml-3 text-xs text-muted-foreground">{query.total.toLocaleString("en-GB")} games</div>
+            ) : null}
+          </div>
+
           <div
             className="max-h-64 overflow-y-auto px-1 py-1"
             onScroll={(event) => {
