@@ -385,13 +385,13 @@ export function ReferenceSelect({
     if (!hasMore || query.loading) return;
     const nextPage = page + 1;
     setPage(nextPage);
-    if (kind === "game") {
+    if (isGameKind) {
       if (partnerFilter && partnerFilterId) {
-        await useReferenceStore.getState().refresh("game", search, nextPage, true, partnerFilterId);
-      } else if (operatorId && operatorScoped) {
+        await useReferenceStore.getState().refresh(kind, search, nextPage, true, partnerFilterId);
+      } else if (kind === "game" && operatorId && operatorScoped) {
         await useReferenceStore.getState().refreshGamesForOperator(operatorId, search, nextPage, true);
       } else {
-        await useReferenceStore.getState().refresh("game", search, nextPage, true);
+        await useReferenceStore.getState().refresh(kind, search, nextPage, true);
       }
       return;
     }
