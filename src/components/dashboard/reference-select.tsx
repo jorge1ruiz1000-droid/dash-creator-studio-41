@@ -169,6 +169,9 @@ export function ReferenceSelect({
   // Single-client admins are resolved from the session, so the games list must
   // be fetched without operator_id. Admins and multi-client accounts send it.
   const operatorScoped = scope.mode !== "single";
+  // Both game lists (operator-scoped `game` and catalogue `catalogGame`) support
+  // server-side partner filtering.
+  const isGameKind = kind === "game" || kind === "catalogGame";
 
   useEffect(() => {
     if (!partnerFilter || !partnerFilterValue) {
@@ -182,10 +185,10 @@ export function ReferenceSelect({
   // forms that depend on operator/operator-games have the data available.
   useEffect(() => {
     if (!required || disabled) return;
-    if (kind === "game") {
+    if (isGameKind) {
       if (partnerFilter) {
         void useReferenceStore.getState().refresh(
-          "game",
+          kind,
           search,
           1,
           false,
@@ -195,21 +198,21 @@ export function ReferenceSelect({
       }
       if (operatorId && operatorScoped) {
         void ensureGamesForOperator(operatorId);
-      } else if (!partnerFilter) {
-        void ensureGlobal("game");
+      } else {
+        void ensureGlobal(kind);
       }
       return;
     }
     void ensureGlobal(kind);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [required, disabled, kind, operatorId, operatorScoped, ensureGamesForOperator, ensureGlobal, partnerFilter, partnerFilterId, search]);
+  }, [required, disabled, kind, isGameKind, operatorId, operatorScoped, ensureGamesForOperator, ensureGlobal, partnerFilter, partnerFilterId, search]);
 
   useEffect(() => {
-    if (kind !== "game" || disabled) return;
+    if (!isGameKind || disabled) return;
     if (partnerFilter) {
       // No partner picked = the full catalogue; a picked partner narrows it server-side.
       void useReferenceStore.getState().refresh(
-        "game",
+        kind,
         search,
         1,
         false,
@@ -221,11 +224,15 @@ export function ReferenceSelect({
       void ensureGamesForOperator(operatorId);
       return;
     }
+    if (kind === "catalogGame") {
+      void ensureGlobal(kind);
+      return;
+    }
     if (!operatorId) {
       return;
     }
     void ensureGlobal("game");
-  }, [kind, operatorId, disabled, operatorScoped, ensureGamesForOperator, ensureGlobal, partnerFilter, partnerFilterId, search]);
+  }, [kind, isGameKind, operatorId, disabled, operatorScoped, ensureGamesForOperator, ensureGlobal, partnerFilter, partnerFilterId, search]);
 
   // Reference lists (operators, partners, roles…) can go stale when records are
   // created elsewhere in the app, so re-fetch them each time the menu is opened.
@@ -234,17 +241,17 @@ export function ReferenceSelect({
   useEffect(() => {
     if (!open || disabled) return;
     const term = search.trim();
-    if (kind === "game") {
+    if (isGameKind) {
       if (partnerFilter) {
-        void refresh("game", term, 1, false, partnerFilterId || undefined);
+        void refresh(kind, term, 1, false, partnerFilterId || undefined);
         return;
       }
       if (operatorId && operatorScoped) {
         void refreshGamesForOperator(operatorId, term);
         return;
       }
-      if (!operatorId) return;
-      void refresh("game", term);
+      if (kind === "game" && !operatorId) return;
+      void refresh(kind, term);
       return;
     }
     // Prefer cached data: only refresh when the list isn't loaded yet or when
@@ -252,7 +259,7 @@ export function ReferenceSelect({
     if (!query.loaded && !term) return;
     void refresh(kind, term);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, search, kind, operatorId, operatorScoped, disabled, refresh, refreshGamesForOperator, query.loaded, partnerFilter, partnerFilterId]);
+  }, [open, search, kind, isGameKind, operatorId, operatorScoped, disabled, refresh, refreshGamesForOperator, query.loaded, partnerFilter, partnerFilterId]);
 
 
 
@@ -299,26 +306,34 @@ export function ReferenceSelect({
     const selectedPartner = partnerState.options.find((option) => option.value === partnerFilterId);
     const selectedPartnerName = selectedPartner?.label?.trim().toLowerCase() ?? "";
 
-    const rows = !partnerFilter || !partnerFilterId
-      ? scopedRows
-      : scopedRows.filter((row) => {
-          const rowPartnerId = row.partner_id;
-          const rowPartnerName = typeof row.partner_name === "string" ? row.partner_name.trim().toLowerCase() : "";
-          const matchesId =
-            rowPartnerId !== undefined &&
-            rowPartnerId !== null &&
-            String(rowPartnerId) === String(partnerFilterId);
-          const matchesName =
-            selectedPartnerName !== "" && rowPartnerName && rowPartnerName === selectedPartnerName;
-          return matchesId || matchesName;
-        });
+    // The API already narrows game lists by partner_id, and rows don't always
+    // carry partner_id/partner_name — so never re-filter them client-side.
+    const clientFiltered =
+      !partnerFilter || !partnerFilterId
+        ? scopedRows
+        : scopedRows.filter((row) => {
+            const rowPartnerId = row.partner_id;
+            const rowPartnerName =
+              typeof row.partner_name === "string" ? row.partner_name.trim().toLowerCase() : "";
+            const matchesId =
+              rowPartnerId !== undefined &&
+              rowPartnerId !== null &&
+              String(rowPartnerId) === String(partnerFilterId);
+            const matchesName =
+              selectedPartnerName !== "" && rowPartnerName && rowPartnerName === selectedPartnerName;
+            return matchesId || matchesName;
+          });
+    const rows =
+      isGameKind && partnerFilter && partnerFilterId && clientFiltered.length === 0
+        ? scopedRows
+        : clientFiltered;
 
     return [...rows].sort((a, b) => {
       const aLabel = rowLabel(a, query.options, kind).toLocaleLowerCase();
       const bLabel = rowLabel(b, query.options, kind).toLocaleLowerCase();
       return aLabel.localeCompare(bLabel);
     });
-  }, [scopedRows, partnerFilter, partnerFilterId, query.options, kind, partnerState.options]);
+  }, [scopedRows, partnerFilter, partnerFilterId, query.options, kind, isGameKind, partnerState.options]);
 
   const filtered = useMemo(() => {
     const result = filterRows(partnerScopedRows, query.options, search, groupBy, kind);
@@ -350,7 +365,7 @@ export function ReferenceSelect({
     return options.length > 0 ? { label: extraGroup.label, options: [...options].sort((a, b) => a.label.localeCompare(b.label)) } : null;
   }, [extraGroup, search]);
 
-  const pageSize = kind === "game" ? 300 : 200;
+  const pageSize = isGameKind ? 300 : 200;
 
   // "Load more" whenever the server reports more records than we have cached.
   // When the API omits a total, a full page of results implies another page exists.
@@ -370,13 +385,13 @@ export function ReferenceSelect({
     if (!hasMore || query.loading) return;
     const nextPage = page + 1;
     setPage(nextPage);
-    if (kind === "game") {
+    if (isGameKind) {
       if (partnerFilter && partnerFilterId) {
-        await useReferenceStore.getState().refresh("game", search, nextPage, true, partnerFilterId);
-      } else if (operatorId && operatorScoped) {
+        await useReferenceStore.getState().refresh(kind, search, nextPage, true, partnerFilterId);
+      } else if (kind === "game" && operatorId && operatorScoped) {
         await useReferenceStore.getState().refreshGamesForOperator(operatorId, search, nextPage, true);
       } else {
-        await useReferenceStore.getState().refresh("game", search, nextPage, true);
+        await useReferenceStore.getState().refresh(kind, search, nextPage, true);
       }
       return;
     }
@@ -496,7 +511,7 @@ export function ReferenceSelect({
                 className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none focus:border-primary/70 focus:ring-0"
               />
             </div>
-            {kind === "game" && !query.loading && typeof query.total === "number" ? (
+            {isGameKind && !query.loading && typeof query.total === "number" ? (
               <div className="ml-3 text-xs text-muted-foreground">{query.total.toLocaleString("en-GB")} games</div>
             ) : null}
           </div>
